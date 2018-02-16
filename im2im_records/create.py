@@ -39,12 +39,12 @@ def empty_image():
     }
 
 
-def make_training_examples(folderA, folderB, identity):
+def make_training_examples(source_folder, target_folder, identity):
     from glob import iglob
 
     # get files in the folders and associate file path with an identity
-    files_A = {identity(name): name for name in iglob(os.path.join(folderA, "*"))}
-    files_B = {identity(name): name for name in iglob(os.path.join(folderB, "*"))}
+    files_A = {identity(name): name for name in iglob(os.path.join(source_folder, "*"))}
+    files_B = {identity(name): name for name in iglob(os.path.join(target_folder, "*"))}
 
     all_identities = set(files_A.keys()) | set(files_B.keys())
 
@@ -73,10 +73,21 @@ def make_training_examples(folderA, folderB, identity):
         yield tf.train.Example(features=tf.train.Features(feature=feature_dict))
 
 
-def make_tf_records(target_file, folderA, folderB, identity):
+def make_tf_records(target_file, source_folder, target_folder, identity):
+    """
+    Make a tfrecords file for source images from `source_folder` mapped to target images in `target_folder`.
+    Two images `A` and `B` are assumed to correspond if `identity(A) == identity(B)`. Images for which no
+    corresponding source (or target resp) exists are ignored.
+    :param target_file: Path to where the tfrecords file is saved.
+    :param source_folder: Path to source images.
+    :param target_folder: Path to target images.
+    :param identity: Function that maps a file name to an identifier which can be used to find out which files from
+                     `source_folder` correspond to those in `target_folder`.
+    :return: Nothing.
+    """
     writer = tf.python_io.TFRecordWriter(target_file)
 
-    for example in make_training_examples(folderA, folderB, identity):
+    for example in make_training_examples(source_folder, target_folder, identity):
         writer.write(example.SerializeToString())
 
     writer.close()

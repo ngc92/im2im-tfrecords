@@ -17,6 +17,23 @@ def decode_image(image_data, prefix, channels):
 
 def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
                     repeat_count=-1, greyscale=False, num_threads=4):
+    """
+    Load a tfrecords file which contains image pairs (and was created by `make_tf_records`).
+    These images can be preprocessed using the `preprocessing`function. This function gets
+    passed in a nested dictionary that contains a unique identifier for this image pair as `"key"`
+    and the data for the two images under `"A"` and `"B"`. Each image has the attributes
+    `width`, `height`, `filename`, `encoded`, `image` where image contains the image
+    pixels as floats in the range [0, 1].
+
+    :param source_file: The tfrecords file.
+    :param preprocessing: Preprocessing function that gets applied to all training examples.
+    :param shuffle: Whether to shuffle the training examples.
+    :param batch_size: Batch size.
+    :param repeat_count: Number of times to iterate over the whole dataset.
+    :param greyscale: Whether the images should be decoded as greyscale or colour images.
+    :param num_threads: Number of threads used by preprocessing.
+    :return: A `dict` of tensors.
+    """
     dataset = tf.data.TFRecordDataset(source_file)
 
     dataset = dataset.repeat(repeat_count)
@@ -39,9 +56,9 @@ def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
            })
 
         channels = 1 if greyscale else 3
-        data = {"key": features["key"]}
-        data["A"] = decode_image(features, "A/", channels)
-        data["B"] = decode_image(features, "B/", channels)
+        data = {"key": features["key"],
+                "A": decode_image(features, "A/", channels),
+                "B": decode_image(features, "B/", channels)}
         return preprocessing(data)
 
     dataset = dataset.map(preproc, num_parallel_calls=num_threads)
