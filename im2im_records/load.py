@@ -20,10 +20,9 @@ def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
     """
     Load a tfrecords file which contains image pairs (and was created by `make_tf_records`).
     These images can be preprocessed using the `preprocessing`function. This function gets
-    passed in a nested dictionary that contains a unique identifier for this image pair as `"key"`
-    and the data for the two images under `"A"` and `"B"`. Each image has the attributes
-    `width`, `height`, `filename`, `encoded`, `image` where image contains the image
-    pixels as floats in the range [0, 1].
+    passed in a dict of `key` and two dictionaries `A` and `B` that contain the images.
+    Each image has the attributes `width`, `height`, `filename`, `encoded`, `image`
+    where image contains the image pixels as floats in the range [0, 1].
 
     :param source_file: The tfrecords file.
     :param preprocessing: Preprocessing function that gets applied to all training examples.
@@ -36,7 +35,7 @@ def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
     """
     dataset = tf.data.TFRecordDataset(source_file)
 
-    dataset = dataset.repeat(repeat_count)
+    dataset = dataset.repeat(repeat_count)  # type: tf.data.Dataset
 
     if shuffle:
         dataset = dataset.shuffle(buffer_size=256)
