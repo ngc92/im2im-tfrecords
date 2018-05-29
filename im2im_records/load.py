@@ -6,17 +6,14 @@ def both_valid(data):
                           tf.not_equal(data["B"]["width"], 0))
 
 
-def decode_image(image_data, prefix, channels):
-    image = tf.image.decode_image(image_data[prefix+"encoded"], name="decode", channels=channels)
+def decode_image(image_data, channels):
+    image = tf.image.decode_image(image_data, name="decode", channels=channels)
     image.set_shape([None, None, channels])
-
-    copy = {key[len(prefix):]: image_data[key] for key in image_data if key.startswith(prefix)}
-    copy["image"] = tf.cast(image, tf.float32) / 255.0
-    return copy
+    return tf.image.convert_image_dtype(image, tf.float32)
 
 
 def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
-                    repeat_count=-1, greyscale=False, num_threads=4):
+                    repeat_count=-1, greyscale=False, num_threads=4, cache=False):
     """
     Load a tfrecords file which contains image pairs (and was created by `make_tf_records`).
     These images can be preprocessed using the `preprocessing`function. This function gets
@@ -33,12 +30,7 @@ def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
     :param num_threads: Number of threads used by preprocessing.
     :return: A `dict` of tensors.
     """
-    dataset = tf.data.TFRecordDataset(source_file)
-
-    dataset = dataset.repeat(repeat_count)  # type: tf.data.Dataset
-
-    if shuffle:
-        dataset = dataset.shuffle(buffer_size=256)
+    dataset = tf.data.TFRecordDataset(source_file, buffer_size=1024*1024)
 
     def preproc(data):
         features = tf.parse_single_example(data,
@@ -55,12 +47,16 @@ def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
            })
 
         channels = 1 if greyscale else 3
-        data = {"key": features["key"],
-                "A": decode_image(features, "A/", channels),
-                "B": decode_image(features, "B/", channels)}
-        return preprocessing(data)
+        features["A/image"] = decode_image(features["A/encoded"], channels)
+        features["B/image"] = decode_image(features["B/encoded"], channels)
+        return preprocessing(features)
 
+    dataset = dataset.repeat(repeat_count)
+    if cache:
+        dataset = dataset.cache()
+    if shuffle:
+        dataset = dataset.shuffle(buffer_size=256)
     dataset = dataset.map(preproc, num_parallel_calls=num_threads)
+    batched = dataset.batch(batch_size)
 
-    batched = dataset.batch(batch_size).prefetch(10)
-    return batched.make_one_shot_iterator().get_next()
+    return batched.prefetch(10)
