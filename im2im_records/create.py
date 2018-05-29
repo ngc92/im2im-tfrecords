@@ -39,12 +39,25 @@ def empty_image():
     }
 
 
+def _id_with_warning(id_fn, name):
+    identity = id_fn(name)
+    if identity == "":
+        _logger.warning("Skipping file %s because no unique identity could be established to find matching files", name)
+    return identity
+
+
 def make_training_examples(source_folder, target_folder, identity):
     from glob import iglob
-
     # get files in the folders and associate file path with an identity
-    files_A = {identity(name): name for name in iglob(os.path.join(source_folder, "*"))}
-    files_B = {identity(name): name for name in iglob(os.path.join(target_folder, "*"))}
+    # TODO check for duplicate identities
+    files_A = {_id_with_warning(identity, name): name for name in iglob(os.path.join(source_folder, "*"))}
+    files_B = {_id_with_warning(identity, name): name for name in iglob(os.path.join(target_folder, "*"))}
+
+    # if we had unidentifiable files, remove them here
+    if "" in files_A:
+        del files_A[""]
+    if "" in files_B:
+        del files_B[""]
 
     all_identities = set(files_A.keys()) | set(files_B.keys())
 
