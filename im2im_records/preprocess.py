@@ -59,4 +59,12 @@ def random_rotations(seed=None):
     return Preprocessor(augment_with_rotations_)
 
 
+def random_contrast(lower, upper, seed=None):
+    def augment_with_contrast_(image):
+        with tf.name_scope("augment_with_contrast", [image]):
+            return tf.image.random_contrast(image, lower, upper, seed)
+
+    return Preprocessor(augment_with_contrast_)
+
+
 nothing = Preprocessor(lambda x: x)
