@@ -67,4 +67,12 @@ def random_contrast(lower, upper, seed=None):
     return Preprocessor(augment_with_contrast_)
 
 
+def copy_feature(feature, new_name):
+    def copy_feature_(features):
+        assert new_name not in features
+        features[new_name] = tf.identity(features[feature])
+        return features
+    return Preprocessor(copy_feature_)
+
+
 nothing = Preprocessor(lambda x: x)

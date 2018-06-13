@@ -60,6 +60,7 @@ def make_training_examples(source_folder, target_folder, identity):
         del files_B[""]
 
     all_identities = set(files_A.keys()) | set(files_B.keys())
+    counter = 0
 
     for example in all_identities:
         if files_A.get(example):
@@ -80,6 +81,8 @@ def make_training_examples(source_folder, target_folder, identity):
         feature_dict = {"A/"+key: A[key] for key in A}
         feature_dict.update({"B/"+key: B[key] for key in B})
         feature_dict["key"] = bytes_feature(example.encode("utf8"))
+        feature_dict["num"] = int_feature(counter)
+        counter += 1
 
         _logger.info("Adding training example %s for files %s and %s",
                      example, files_A[example], files_B[example])

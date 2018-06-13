@@ -26,8 +26,7 @@ def make_identity():
         """
         _, base_name = os.path.split(file_name)
         base_name, _ = os.path.splitext(base_name)
-        name, _, index = base_name.partition("_")
-        all = re.findall(r"\d+", name)
+        all = re.findall(r"\d+", base_name)
         if len(all) != 1:
             return ""
         else:

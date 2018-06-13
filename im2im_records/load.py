@@ -43,7 +43,8 @@ def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
                'B/height':    tf.FixedLenFeature([], tf.int64),
                'B/filename': tf.FixedLenFeature([], tf.string),
                'B/encoded':  tf.FixedLenFeature([], tf.string),
-               'key':  tf.FixedLenFeature([], tf.string),
+               'key': tf.FixedLenFeature([], tf.string),
+               'num': tf.FixedLenFeature([], tf.int64),
            })
 
         channels = 1 if greyscale else 3
