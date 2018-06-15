@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='im2im-tfrecords',
-    version='0.2.1',
+    version='0.2.2',
     packages=['im2im_records'],
     url='',
     license='',

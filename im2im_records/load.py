@@ -13,7 +13,8 @@ def decode_image(image_data, channels):
 
 
 def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
-                    repeat_count=-1, greyscale=False, num_threads=4, cache=False):
+                    repeat_count=-1, greyscale=False, num_threads=4, cache=False,
+                    take=-1):
     """
     Load a tfrecords file which contains image pairs (and was created by `make_tf_records`).
     These images can be preprocessed using the `preprocessing`function. This function gets
@@ -28,11 +29,12 @@ def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
     :param repeat_count: Number of times to iterate over the whole dataset.
     :param greyscale: Whether the images should be decoded as greyscale or colour images.
     :param num_threads: Number of threads used by preprocessing.
+    :param take: Integer, how many data examples should be taken. -1 means all data points.
     :return: A `dict` of tensors.
     """
     dataset = tf.data.TFRecordDataset(source_file, buffer_size=1024*1024)
 
-    def preproc(data):
+    def decoding(data):
         features = tf.parse_single_example(data,
            features={
                'A/width':    tf.FixedLenFeature([], tf.int64),
@@ -50,14 +52,23 @@ def load_tf_records(source_file, preprocessing, shuffle=True, batch_size=32,
         channels = 1 if greyscale else 3
         features["A/image"] = decode_image(features["A/encoded"], channels)
         features["B/image"] = decode_image(features["B/encoded"], channels)
-        return preprocessing(features)
+        return features
+
+    if take > 0:
+        dataset = dataset.take(take)
+
+    if cache:
+        # when caching, it makes sense to decode only once
+        dataset = dataset.map(decoding, num_parallel_calls=num_threads)
+        dataset = dataset.cache()
+    else:
+        # otherwise, combine decoding and preprocessing so we use just a single map
+        preprocessing = lambda x: preprocessing(decoding(x))
 
     dataset = dataset.repeat(repeat_count)
-    if cache:
-        dataset = dataset.cache()
     if shuffle:
         dataset = dataset.shuffle(buffer_size=256)
-    dataset = dataset.map(preproc, num_parallel_calls=num_threads)
+    dataset = dataset.map(preprocessing, num_parallel_calls=num_threads)
     batched = dataset.batch(batch_size)
 
     return batched.prefetch(10)
