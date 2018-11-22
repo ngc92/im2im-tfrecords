@@ -119,6 +119,7 @@ def make_tf_records(target_file, source_folder, target_folder, identity, filter_
     writer = tf.python_io.TFRecordWriter(target_file)
 
     try:
+        c = 0
         for c, example in enumerate(make_training_examples(source_folder, target_folder, identity, filter_fn)):
             writer.write(example.SerializeToString())
         _logger.info("Processed %d examples", c)

@@ -15,18 +15,19 @@ args = argparse.ArgumentParser(
 args.add_argument("source", type=str, help="Folder for the source images.")
 args.add_argument("target", type=str, help="Folder for the target images.")
 args.add_argument("result", type=str, help="Filename for tfrecords file.")
+args.add_argument("filter", type=str, default=r"\d+", nargs="?", help="Regexp used to extract matching files")
 
 arguments = args.parse_args()
 
 
-def make_identity():
+def make_identity(regexp):
     def identity(file_name):
         """
         Assumes a filename is built as path/basename_IDENTITY.extension and extracts IDENTITY.
         """
         _, base_name = os.path.split(file_name)
         base_name, _ = os.path.splitext(base_name)
-        all = re.findall(r"\d+", base_name)
+        all = re.findall(regexp, base_name)
         if len(all) != 1:
             return ""
         else:
@@ -35,4 +36,5 @@ def make_identity():
     return identity
 
 
-make_tf_records(arguments.result, arguments.source, arguments.target, make_identity())
+logging.info("Creating tfrecords file for {} -> {}".format(arguments.source, arguments.target))
+make_tf_records(arguments.result, arguments.source, arguments.target, make_identity(arguments.filter))
